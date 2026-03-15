@@ -1,22 +1,56 @@
 import { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { useNetwork } from '../context/NetworkContext';
+import { useGameLogic } from '../hooks/useGameLogic';
+import { AlertCircle, SkipForward } from 'lucide-react';
 
 const Judging = () => {
   const { 
-    playerId, judgeId, currentMeme, submittedCaptions 
+    playerId, judgeId, currentMeme, submittedCaptions, hostId 
   } = useGameStore();
   const { sendToHost } = useNetwork();
+  const { nextRound } = useGameLogic();
   const [selectedWinner, setSelectedWinner] = useState<string | null>(null);
   const isJudge = playerId === judgeId;
+  const isHost = playerId === hostId;
 
   const handlePickWinner = () => {
     if (!selectedWinner || !isJudge) return;
     sendToHost({ type: 'PICK_WINNER', winnerId: selectedWinner });
   };
 
+  if (submittedCaptions.length === 0) {
+    return (
+      <div className="flex flex-col items-center space-y-8 py-10 animate-in fade-in zoom-in duration-500">
+        <div className="text-center space-y-2">
+          <div className="bg-red-500/10 text-red-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20">
+            <AlertCircle size={32} />
+          </div>
+          <h2 className="text-3xl font-black uppercase italic tracking-tight">Mission Failed</h2>
+          <p className="text-slate-400">No one submitted a caption in time!</p>
+        </div>
+
+        <div className="w-full max-w-sm aspect-square bg-slate-800 rounded-2xl overflow-hidden shadow-2xl opacity-50 grayscale">
+          <img src={currentMeme!} alt="Meme" className="w-full h-full object-contain" />
+        </div>
+
+        {isHost ? (
+          <button
+            onClick={nextRound}
+            className="flex items-center space-x-3 px-12 py-4 bg-slate-700 hover:bg-slate-600 rounded-full text-xl font-black shadow-lg transition-all"
+          >
+            <SkipForward className="fill-current" />
+            <span>SKIP ROUND</span>
+          </button>
+        ) : (
+          <p className="text-amber-500 font-bold animate-pulse">Waiting for host to reset mission...</p>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col items-center space-y-6">
+    <div className="flex flex-col items-center space-y-6 w-full">
       <div className="text-center">
         <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 mb-2 italic uppercase">
           {isJudge ? "Judge's Choice" : "Judging in Progress"}

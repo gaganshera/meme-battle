@@ -34,7 +34,9 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
       submittedCaptions: state.submittedCaptions,
       judgeId: state.judgeId,
       phase: state.phase,
-      winner: state.winner
+      winner: state.winner,
+      config: state.config,
+      timerEnd: state.timerEnd
     }));
   };
 
@@ -77,10 +79,25 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const state = useGameStore.getState();
       const exists = state.players.find(p => p.id === action.playerId);
       let nextPlayers = state.players;
+      let nextHands = { ...state.hands };
+      let nextCaptionCards = [...state.captionCards];
       
       if (!exists) {
         nextPlayers = [...state.players, { id: action.playerId, name: action.name, score: 0 }];
-        setGameState({ players: nextPlayers });
+        
+        // Mid-game joiner: Give them 7 cards if the game has started
+        if (state.phase !== 'LOBBY') {
+          console.log(`[Host] Dealing cards to mid-game joiner: ${action.name}`);
+          const newHand = nextCaptionCards.slice(0, 7);
+          nextCaptionCards = nextCaptionCards.slice(7);
+          nextHands[action.playerId] = newHand;
+        }
+        
+        setGameState({ 
+          players: nextPlayers, 
+          hands: nextHands, 
+          captionCards: nextCaptionCards 
+        });
       }
       
       // Host ALWAYS broadcasts full state sync to everyone when anyone joins

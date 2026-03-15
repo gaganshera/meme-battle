@@ -31,8 +31,21 @@ export const useGameLogic = () => {
 
   const startGame = useCallback(async () => {
     console.log('[GameLogic] Starting game...');
+    
+    // Fetch fresh captions from a remote source
+    let remoteCaptions: string[] = [];
+    try {
+      const response = await fetch('https://raw.githubusercontent.com/crhallberg/json-against-humanity/master/full.json');
+      const data = await response.json();
+      // Use the 'white' cards (answers) from CAH dataset - they fit perfectly
+      remoteCaptions = data.white.map((card: any) => card.text.replace(/<br\/>/g, ' '));
+    } catch (error) {
+      console.error('Failed to fetch remote captions, falling back to local data', error);
+      remoteCaptions = captionsData;
+    }
+
     const meme = await fetchMeme();
-    const shuffledCaptions = shuffleArray(captionsData);
+    const shuffledCaptions = shuffleArray(remoteCaptions.length > 0 ? remoteCaptions : captionsData);
     
     // Deal 7 cards to each player
     const newHands: Record<string, string[]> = {};
@@ -52,7 +65,8 @@ export const useGameLogic = () => {
       hands: newHands,
       judgeId,
       submittedCaptions: [],
-      winner: null
+      winner: null,
+      timerEnd: Date.now() + (useGameStore.getState().config.submissionTime * 1000)
     };
 
     console.log('[GameLogic] Updating host state and syncing...');
@@ -75,9 +89,17 @@ export const useGameLogic = () => {
     const newHands = { ...currentState.hands };
     let availableCaptions = [...currentState.captionCards];
 
+    // First, remove the cards that players submitted this round
+    currentState.submittedCaptions.forEach(sub => {
+      if (newHands[sub.playerId]) {
+        newHands[sub.playerId] = newHands[sub.playerId].filter(card => card !== sub.text);
+      }
+    });
+
+    // Then, refill everyone's hand back up to 7 cards
     currentState.players.forEach(p => {
       const cardsNeeded = 7 - (newHands[p.id]?.length || 0);
-      if (cardsNeeded > 0) {
+      if (cardsNeeded > 0 && availableCaptions.length >= cardsNeeded) {
         const newCards = availableCaptions.slice(0, cardsNeeded);
         newHands[p.id] = [...(newHands[p.id] || []), ...newCards];
         availableCaptions = availableCaptions.slice(cardsNeeded);
@@ -91,7 +113,8 @@ export const useGameLogic = () => {
       hands: newHands,
       judgeId: nextJudgeId,
       submittedCaptions: [],
-      winner: null
+      winner: null,
+      timerEnd: Date.now() + (useGameStore.getState().config.submissionTime * 1000)
     };
 
     setGameState(newState);
