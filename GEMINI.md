@@ -1,6 +1,6 @@
-# What Do You Meme? - Developer Guide
+# Meme Battle - Developer Guide
 
-This is a front-end only, multiplayer version of the popular party game "What Do You Meme?". It uses Peer-to-Peer (WebRTC) networking to allow multiple players to join a session without a dedicated backend.
+This is a front-end only, multiplayer version of the popular party game "Meme Battle". It uses Peer-to-Peer (WebRTC) networking to allow multiple players to join a session without a dedicated backend.
 
 ## 🚀 Tech Stack
 
